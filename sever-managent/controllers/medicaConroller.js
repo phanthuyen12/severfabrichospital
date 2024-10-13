@@ -4,6 +4,10 @@ const { Gateway, Wallets } = require("fabric-network");
 const bcrypt = require('bcrypt');
 const { connectToNetworkorgvalue ,connectToNetworkorg,connectToNetworkmedicalvalue} = require('../controllers/network');
 const jwt = require('jsonwebtoken');
+require('dotenv').config(); // Đọc file .env để nạp biến môi trường
+
+// Lấy giá trị từ biến môi trường
+const NameNetworkValue = process.env.NAMENETWORK || "channel1";  
 async function connectToNetwork() {
   const ccpPath = path.resolve(
     __dirname,
@@ -27,35 +31,59 @@ async function connectToNetwork() {
     discovery: { enabled: true, asLocalhost: true },
   });
 
-  const network = await gateway.getNetwork("channel1");
+  const network = await gateway.getNetwork(NameNetworkValue);
   const contract = network.getContract("medical");
 
   return { contract, gateway };
 }
-exports.updateRecords= async (req,res) =>{
-  const {  cccd,tokenmedical, birthDate, gender, address, phoneNumber, identityCard} = req.body;
+exports.updateRecords = async (req, res) => {
+  const { 
+    cccd, 
+    weight, 
+    height, 
+    medicalinsurance, 
+    birthDate, 
+    gender, 
+    address, 
+    phoneNumber, 
+    avatar 
+  } = req.body;
 
   console.log('Request body:', req.body);
-  if (!cccd||!tokenmedical || !birthDate || !gender || !address || !phoneNumber ||!identityCard) {
+  
+  // Kiểm tra tính hợp lệ của các trường đầu vào
+  if (!cccd || !weight || !height || !medicalinsurance  || 
+      !birthDate || !gender || !address || !phoneNumber || !avatar) {
     return res.status(400).json({ success: false, message: 'Invalid input' });
   }
 
   try {
-    // Connect to the network
+    // Kết nối với mạng
     const { contract, gateway } = await connectToNetwork();
     const currentTime = new Date();
 
-
-    // Submit transaction
-    const result = await contract.submitTransaction('updateRecord',cccd, tokenmedical, birthDate, gender, address, phoneNumber, identityCard, currentTime.toISOString());
+    // Gửi giao dịch
+    const result = await contract.submitTransaction(
+      'updateRecord', 
+      cccd, 
+      weight, 
+      height, 
+      medicalinsurance, 
+      birthDate, 
+      gender, 
+      address, 
+      phoneNumber, 
+      avatar, 
+      currentTime.toISOString()
+    );
 
     if (result) {
       console.log('Transaction result:', result.toString());
-      // Return success response
+      // Trả về phản hồi thành công
       const parsedResult = JSON.parse(result.toString());
-
+      console.log(parsedResult)
       res.status(200).json({
-        message: "Login has been processed successfully",
+        message: "Record has been updated successfully",
         transactionResult: parsedResult
       });
     } else {
@@ -63,13 +91,14 @@ exports.updateRecords= async (req,res) =>{
       res.status(500).json({ success: false, message: 'Unexpected result from transaction' });
     }
 
-    // Disconnect from the gateway
+    // Ngắt kết nối khỏi gateway
     await gateway.disconnect();
   } catch (error) {
     console.error(`Failed to submit transaction: ${error.message}`);
-    res.status(500).json({ success: false, message: `Failed to add organization: ${error.message}` });
+    res.status(500).json({ success: false, message: `Failed to update record: ${error.message}` });
   }
 }
+
 exports.registerMedical = async (req, res) => {
   const { name, email, cccd, passwordmedical } = req.body;
   console.log('Request body:', req.body);
@@ -314,7 +343,7 @@ exports.requestbookaccess = async (req, res) => {
 };
 
 exports.getDataRecord = async (req, res) => {
-    const { cccd } = req.body;
+    const { cccd ,tokenmedical} = req.body;
     console.log(req.body);
 
     if (!cccd) {
@@ -325,7 +354,7 @@ exports.getDataRecord = async (req, res) => {
         const { contract, gateway } = await connectToNetwork();
         
         // Sử dụng evaluateTransaction thay vì submitTransaction cho các thao tác đọc
-        const result = await contract.evaluateTransaction('getDataRecord', cccd);
+        const result = await contract.evaluateTransaction('getDataRecord', cccd,tokenmedical);
         
         if (result) {
             const medical = JSON.parse(result.toString());
@@ -371,6 +400,39 @@ exports.approveAccessRequest = async (req, res) => {
       return res.status(500).send(`Lỗi khi phê duyệt yêu cầu: ${error.message}`);
   }
 };
+exports.getFunaccessRequests = async (req,res)=>{
+  try {
+    const { cccd,tokenmedical} = req.body; // Get data from request body
+    console.log(req.body);
+    // Check if all required data is provided
+    if (!cccd || !tokenmedical ) {
+        return res.status(400).json({ error: 'CCCD, newData, and timepost are required' });
+    }
+
+    const { contract, gateway } = await connectToNetwork(); // Connect to the network
+
+    // Call the chaincode function to update the medical record
+    const result = await contract.submitTransaction('getDataFunaccessRequests', cccd,tokenmedical);
+    
+    if (result) {
+        console.log("Transaction result:", result.toString());
+        res.status(200).json({
+            message: `Record with CCCD ${cccd} has been successfully updated`,
+            transactionResult: JSON.parse(result)
+        });
+    } else {
+        console.error("Result is undefined");
+        res.status(500).send("Unexpected result from transaction");
+    }
+
+    await gateway.disconnect(); // Disconnect the gateway
+
+} catch (error) {
+    // Handle connection errors or unexpected errors
+    console.error('Error in postDataMedicalExaminationHistory handler:', error);
+    res.status(500).json({ error: 'An unexpected error occurred' });
+}
+}
 exports.postDataMedicalExaminationHistory = async (req, res) => {
   try {
       const { cccd, newData, timepost ,tokeorg} = req.body; // Get data from request body
@@ -407,10 +469,10 @@ exports.postDataMedicalExaminationHistory = async (req, res) => {
 
 
 exports.createrecord = async (req, res) => { 
-    const {name, birthDate, gender, address, phoneNumber, identityCard,cccd,passwordmedical} = req.body;
+    const {name, birthDate, gender, address, phoneNumber, avatar,cccd,passwordmedical} = req.body;
     console.log('Request body:', req.body);
 
-    if (!name || !birthDate || !gender || !address || !phoneNumber|| !identityCard||!cccd)  {
+    if (!name || !birthDate || !gender || !address || !phoneNumber|| !avatar||!cccd)  {
         return res.status(400).send('Invalid input');
     }
 
@@ -421,7 +483,7 @@ exports.createrecord = async (req, res) => {
         const passwordmedicalnew = await bcrypt.hash(passwordmedical, saltRounds);
 
     
-        const result = await contract.submitTransaction('createRecord',name, birthDate, gender, address, phoneNumber, identityCard,cccd,currentTime,passwordmedicalnew);
+        const result = await contract.submitTransaction('createRecord',name, birthDate, gender, address, phoneNumber, avatar,cccd,currentTime,passwordmedicalnew);
 
         if (result) {
             console.log('Transaction result:', result.toString());

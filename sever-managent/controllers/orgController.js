@@ -4,38 +4,9 @@ const { Gateway, Wallets } = require("fabric-network");
 const { exec } = require('child_process');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { connectToNetworkorgvalue ,connectToNetworkorg} = require('../controllers/network');
+const { connectToNetworkorgvalue ,connectToNetworkorg,connectToNetwork} = require('../controllers/network');
 
-async function connectToNetwork() {
-  const ccpPath = path.resolve(
-    __dirname,
-    "..",
-    "..",
-    "network",
-    "organizations",
-    "peerOrganizations",
-    "org1.example.com",
-    "connection-org1.json"
-  );
-  const ccp = JSON.parse(fs.readFileSync(ccpPath, "utf8"));
 
-  const walletPath = path.join(process.cwd(), "wallet");
-  const wallet = await Wallets.newFileSystemWallet(walletPath);
-
-  const gateway = new Gateway();
-await gateway.connect(ccp, {
-  wallet,
-  identity: "userorg1",
-  discovery: { enabled: true, asLocalhost: true },
-  eventHandlerOptions: { commitTimeout: 1020 }  // Tăng timeout cho sự kiện
-
-});
-
-  const network = await gateway.getNetwork("channel1");
-  const contract = network.getContract("organization");
-
-  return { contract, gateway };
-}
 exports.getAllOrganizations = async (req, res) => {
   let gateway;
   try {
@@ -49,7 +20,7 @@ exports.getAllOrganizations = async (req, res) => {
 
     // Kiểm tra nếu có kết quả trả về
     if (result) {
-      console.log("Transaction result:", result.toString());
+      // console.log("Transaction result:", result.toString());
 
       // Chuyển đổi chuỗi JSON thành object và trả về kết quả dưới dạng JSON
       const organizations = JSON.parse(result.toString());
@@ -76,7 +47,7 @@ exports.checkroleadmin = async (req, res) => {
     const result = await contract.submitTransaction("checkroleAdmin");
 
     if (result) {
-      console.log("Transaction result:", result.toString());
+      // console.log("Transaction result:", result.toString());
 
       const isAdmin = result.toString().toLowerCase() === 'true';
 
@@ -90,14 +61,14 @@ exports.checkroleadmin = async (req, res) => {
         const currentDirectory = process.cwd();
         const parentDirectory = path.join(currentDirectory, '../', 'network');
 
-        console.log(`Current Directory: ${currentDirectory}`);
-        console.log(`Parent Directory: ${parentDirectory}`);
+        // console.log(`Current Directory: ${currentDirectory}`);
+        // console.log(`Parent Directory: ${parentDirectory}`);
 
         const scriptPath = path.join(parentDirectory, 'tudong.sh');
 
         exec(`sh ${scriptPath} ${nameorg}`, (error, stdout, stderr) => {
           if (error) {
-            console.error(`Error executing script: ${error.message}`);
+            // console.error(`Error executing script: ${error.message}`);
             return res.status(500).send(`Error executing script: ${error.message}`);
           }
           if (stderr) {
@@ -208,7 +179,7 @@ exports.getActiveOrganizations = async (req, res) => {
     // Xử lý kết quả trả về
     if (result) {
       const org = JSON.parse(result.toString());
-      console.log("Transaction result:", org);
+      // console.log("Transaction result:", org);
       res.status(200).json({ message: 'Data retrieved successfully', org });
     } else {
       console.error("Transaction returned undefined or null result");

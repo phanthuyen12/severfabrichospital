@@ -416,33 +416,52 @@ class OrgChaincode extends Contract {
     // Retrieve the organization state by token
     const orgAsBytes = await ctx.stub.getState(tokeorg);
 
+    // Check if organization exists
     if (!orgAsBytes || orgAsBytes.length === 0) {
-      throw new Error(`Organization with token ${tokeorg} does not exist`);
+        throw new Error(`Organization with token ${tokeorg} does not exist`);
     }
 
-    // Parse the retrieved organization
-    const org = JSON.parse(orgAsBytes.toString());
+    let org;
+    // Try parsing the organization data from the ledger
+    try {
+        org = JSON.parse(orgAsBytes.toString());
+    } catch (error) {
+        throw new Error(`Failed to parse organization data for token ${tokeorg}: ${error}`);
+    }
 
-    // Log the current and new status (assuming there’s a `status` property in the organization)
-    const currentStatus = org.statusOrg || "false"; // Default to "UNKNOWN" if status does not exist
+    // Ensure statusOrg property exists or set default
+    const currentStatus = org.statusOrg || "false";  // Default to "false" if not available
     console.log(`Updating status of organization ${tokeorg} from ${currentStatus} to ${newStatus}`);
 
     // Update the organization's status
     org.statusOrg = newStatus;
 
+    // Ensure historyOrg array exists before adding history entry
+    if (!org.historyOrg) {
+        org.historyOrg = [];
+    }
+
     // Add history entry for the status update
     org.historyOrg.push({
-      action: 'UPDATE_STATUS',
-      timestamp: currentTime,
-      data: { previousStatus: currentStatus, newStatus }
+        action: 'UPDATE_STATUS',
+        timestamp: currentTime,
+        data: { previousStatus: currentStatus, newStatus }
     });
 
     // Save the updated organization state back to the ledger
-    await ctx.stub.putState(tokeorg, Buffer.from(JSON.stringify(org)));
+    try {
+        await ctx.stub.putState(tokeorg, Buffer.from(JSON.stringify(org)));
+    } catch (error) {
+        throw new Error(`Failed to update organization status for token ${tokeorg}: ${error}`);
+    }
 
     // Return confirmation or updated organization data
-    return { orgToken: tokeorg, status: newStatus, message: `Organization status updated successfully` };
-  }
+    return {
+        orgToken: tokeorg,
+        status: newStatus,
+        message: `Organization status updated successfully`
+    };
+}
 
   // Cập nhật thông tin người dùng
   async updateUser(ctx, tokenorg, cccd, fullname, address, phone, typeusers, password) {

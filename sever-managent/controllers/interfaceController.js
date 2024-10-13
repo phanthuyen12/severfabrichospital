@@ -2,6 +2,10 @@ const path = require("path");
 const fs = require("fs");
 const { Gateway, Wallets } = require("fabric-network");
 const { connectToNetwork } = require('./network'); // Chỉnh đường dẫn tùy theo cấu trúc thư mục của bạn
+require('dotenv').config(); // Đọc file .env để nạp biến môi trường
+
+// Lấy giá trị từ biến môi trường
+const NameNetworkValue = process.env.NAMENETWORK || "channel1";  // Nếu không có biến NAMENETWORK, mặc định là NameNetworkValue
 
 async function connectToNetworklist() {
   const ccpPath = path.resolve(
@@ -26,7 +30,7 @@ async function connectToNetworklist() {
     discovery: { enabled: true, asLocalhost: true },
   });
 
-  const network = await gateway.getNetwork("channel1");
+  const network = await gateway.getNetwork(NameNetworkValue);
   const contract = network.getContract("mediaca");
 
   return { contract, gateway };

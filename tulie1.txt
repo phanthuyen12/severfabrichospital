@@ -8,8 +8,8 @@ export FABRIC_CFG_PATH=$(realpath ../config)
 
 ./network.sh deployCC -ccn organization -ccp ../chaincode/OrgChaincode -ccl javascript -c channel1 -verbose
 ./network.sh deployCC -ccn medical -ccp ../chaincode/MedicaChaincode -ccl javascript -c channel1 -verbose
-./network.sh deployCC -ccn organization -ccp ../chaincode/OrgChaincode -ccl javascript -c channel1 
-./network.sh deployCC -ccn medical -ccp ../chaincode/MedicaChaincode -ccl javascript -c channel1 
+./network.sh deployCC -ccn organization -ccp ../chaincode/OrgChaincode -ccl javascript -c phangiathuyendeffff 
+./network.sh deployCC -ccn medical -ccp ../chaincode/MedicaChaincode -ccl javascript -c phangiathuyendeffff 
 
 ./network.sh deployCC -ccn organization -ccp ../chaincode/OrgChaincode -ccl javascript -c channel1 -ccep "OR('Org1MSP.peer','Org2MSP.peer')"
 ./network.sh deployCC -ccn medical -ccp ../chaincode/MedicaChaincode -ccl javascript -c channel1 -ccep "OR('Org1MSP.peer','Org2MSP.peer')"

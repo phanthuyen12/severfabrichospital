@@ -5,7 +5,7 @@ const { Wallets } = require('fabric-network');
 const fs = require('fs');
 const path = require('path');
 
-async function main() {
+async function registerUser() {
     try {
         // Load the network configuration
         const ccpPath = path.resolve(__dirname, '..', 'network', 'organizations', 'peerOrganizations', 'org1.example.com', 'connection-org1.json');
@@ -26,14 +26,14 @@ async function main() {
         if (!adminIdentity) {
             console.log('An identity for the admin user "admin" does not exist in the wallet');
             console.log('Run the enrollAdmin.js application before retrying');
-            return;
+            return false; // Trả về false nếu admin không tồn tại
         }
 
         // Check to see if we've already registered the user
         const userExists = await wallet.get('userorg1');
         if (userExists) {
             console.log('An identity for the user "userorg1" already exists in the wallet');
-            return;
+            return false; // Trả về false nếu user đã tồn tại
         }
 
         // Build a user object for authenticating with the CA
@@ -64,11 +64,12 @@ async function main() {
 
         await wallet.put('userorg1', userIdentity);
         console.log('Successfully registered and enrolled user "userorg1" and imported it into the wallet');
+        return true; // Trả về true nếu thành công
 
     } catch (error) {
         console.error(`Failed to register user "userorg1": ${error.message}`);
-        process.exit(1);
+        return false; // Trả về false nếu có lỗi
     }
 }
-
-main();
+// registerUser();
+module.exports = { registerUser };
